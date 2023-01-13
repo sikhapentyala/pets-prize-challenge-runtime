@@ -4,6 +4,7 @@ from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OrdinalEncoder
 from sklearn.naive_bayes import CategoricalNB
+from xgboost import XGBClassifier
 
 
 class SwiftModel:
@@ -11,7 +12,7 @@ class SwiftModel:
         self.pipeline = Pipeline(
             [
                 ("encoder", OrdinalEncoder()),
-                ("model", CategoricalNB()),
+                ("model", XGBClassifier()),
             ]
         )
 
@@ -74,7 +75,7 @@ class BankModel:
                     ),
                 ),
                 ("encoder", OrdinalEncoder()),
-                ("model", CategoricalNB()),
+                ("model", XGBClassifier()),
             ]
         )
 

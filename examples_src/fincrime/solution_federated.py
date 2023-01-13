@@ -22,6 +22,14 @@ def empty_parameters() -> Parameters:
     return fl.common.ndarrays_to_parameters([])
 
 
+# TRAIN PROCEDURE:
+# round 1:
+#   - SWIFT client fits on SWIFT data; SWIFT client sends labels for banks to Strategy
+#   - Bank clients tell Strategy which banks are present in each partition
+# round 2:
+#   - Strategy sends labels to banks; banks join flag data and fit
+
+
 def swift_df_to_ndarrays(
     swift_df: pd.DataFrame, labels: bool = True
 ) -> List[np.ndarray]:
@@ -61,25 +69,6 @@ def ndarrays_to_swift_df(
         index=pd.Series(swift_index, name="MessageId"),
         columns=cols,
     )
-
-
-# TRAIN PROCEDURE:
-# round 1:
-#   - SWIFT client fits on SWIFT data; SWIFT client sends labels for banks to Strategy
-#   - Bank clients tell Strategy which banks are present in each partition
-# round 2:
-#   - Strategy sends labels to banks; banks join flag data and fit
-
-
-def train_setup(server_dir: Path, client_dirs_dict: Dict[str, Path]):
-    """
-    Optional: Perform initial setup between parties before federated training. If you
-    don't need this, then don't define this function.
-
-    See "Federated Code Submission" documentation for more detail on appropriate use.
-    Misuse of this function is grounds for disqualification.
-    """
-    logger.info("Hello from train_setup")
 
 
 class TrainingSwiftClient(fl.client.NumPyClient):
@@ -133,18 +122,11 @@ class TrainingBankClient(fl.client.NumPyClient):
             # Join ordering account flags
             logger.info(f"{self.cid} : Joining bank flags to SWIFT labels...")
             swift_df = join_flags_to_swift_data(swift_df, self.bank_df)
-            if swift_df.shape[0] == 0:
-                # It may be the case that there are no rows, because this bank
-                # doesn't contain any beneficiary accounts
-                logger.info(
-                    f"{self.cid} : This partition has no receiving accounts. "
-                    "Skipping model fitting."
-                )
-                return [], 0, {}
             # Fit model
             logger.info(f"{self.cid} : Fitting model...")
             X = swift_df[["BeneficiaryFlags"]]
-            y = swift_df["Label"]
+            swift_df.to_csv('testcsv.csv')
+            y = swift_df["Label"].astype(int)
             self.model.fit(X, y)
             # Save model checkpoint
             logger.info(f"{self.cid} : Saving model to disk...")
@@ -268,17 +250,6 @@ def train_strategy_factory(server_dir: Path):
 #   - Strategy sends Bank predictions to SWIFT. SWIFT predicts and combines.
 
 
-def test_setup(server_dir: Path, client_dirs_dict: Dict[str, Path]):
-    """
-    Perform initial setup between parties before federated test inference. If you
-    don't need this, then don't define this function.
-
-    See "Federated Code Submission" documentation for more detail on appropriate use.
-    Misuse of this function is grounds for disqualification.
-    """
-    logger.info("Hello from test_setup")
-
-
 def test_client_factory(
     cid: str,
     data_path: Path,
@@ -363,6 +334,8 @@ class TestBankClient(fl.client.NumPyClient):
             return [self.bank_df["Bank"].unique().astype("U")], 0, {}
         ## Round 2: Load NB model, predict on data
         elif config["round"] == 2:
+            logger.info(f"{self.cid} : Loading model...")
+            model = BankModel.load(self.client_dir / "model.joblib")
             logger.info(f"{self.cid} : Received SWIFT transactions...")
             # parameters contains account data from SWIFT, reform into dataframe
             swift_index, swift_transactions = parameters
@@ -372,17 +345,6 @@ class TestBankClient(fl.client.NumPyClient):
             # Join ordering account flags
             logger.info(f"{self.cid} : Joining bank flags to SWIFT transactions...")
             swift_df = join_flags_to_swift_data(swift_df, self.bank_df)
-            if swift_df.shape[0] == 0:
-                # It may be the case that there are no rows, because this bank
-                # doesn't contain any beneficiary accounts
-                logger.info(
-                    f"{self.cid} : This partition has no receiving accounts. "
-                    "Returning empty values."
-                )
-                return [[], []], 0, {}
-            # Load model
-            logger.info(f"{self.cid} : Loading model...")
-            model = BankModel.load(self.client_dir / "model.joblib")
             # Run predict
             logger.info(f"{self.cid} : Predicting...")
             X = swift_df[["BeneficiaryFlags"]]

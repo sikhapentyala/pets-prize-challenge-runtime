@@ -68,7 +68,8 @@ def create_supervisor_logger(logger: Logger, log_path: Path):
 class FederatedSupervisor:
     """Class that does client and filesystem path bookkeeping for the simulation."""
 
-    base_storage_dir = Path("/code_execution/submission")
+    # base_storage_dir = Path("/code_execution/submission")
+    base_storage_dir = Path(str(Path.cwd().parent) + "/code_execution/submission")
 
     def __init__(self, partition_config_path: Union[str, Path]) -> None:
         # Set up paths
@@ -417,8 +418,10 @@ class FederatedWrapperStrategy(fl.server.strategy.Strategy):
 class CentralizedSupervisor:
     """Class that does path bookkeeping for centralized evaluation."""
 
-    base_data_dir = Path("/code_execution/data/centralized")
-    base_storage_dir = Path("/code_execution/submission")
+    base_data_dir = Path(str(Path.cwd().parent) + "/data/fincrime/centralized")
+    base_storage_dir = Path(str(Path.cwd().parent) + "/code_execution/submission")
+    # base_data_dir = Path("/code_execution/data/centralized")
+    # base_storage_dir = Path("/code_execution/submission")
 
     def __init__(self, stage: str, root_logger: Logger) -> None:
         # Set up paths

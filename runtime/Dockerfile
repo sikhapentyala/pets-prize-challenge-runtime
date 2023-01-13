@@ -2,7 +2,7 @@ FROM nvidia/cuda:11.0.3-base-ubuntu20.04
 # adapated from build file for pangeo images
 # https://github.com/pangeo-data/pangeo-docker-images
 
-ARG CPU_OR_GPU=gpu
+ARG CPU_OR_GPU=cpu
 
 ENV CONDA_VERSION=4.10.3-2 \
     CONDA_ENV=condaenv \
@@ -59,7 +59,7 @@ RUN echo "Installing Miniforge..." \
 
 # Switch back to root for installing conda packages
 COPY environment-${CPU_OR_GPU}.yml /home/${RUNTIME_USER}/environment.yml
-RUN [ ${CPU_OR_GPU} = "gpu" ] && export CONDA_OVERRIDE_CUDA="11.0" || export CONDA_OVERRIDE_CUDA= \
+RUN [ ${CPU_OR_GPU} = "cpu" ] && export CONDA_OVERRIDE_CUDA="11.0" || export CONDA_OVERRIDE_CUDA= \
     && mamba env create --name ${CONDA_ENV} -f /home/${RUNTIME_USER}/environment.yml  \
     && mamba clean -afy \
     && conda run pip cache purge \

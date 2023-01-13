@@ -1,18 +1,18 @@
 import os
 import sys
 from pathlib import Path
+from typing import Callable
 
 import flwr as fl
 
 from loguru import logger
 from supervisor import (
-    create_supervisor_logger,
     FederatedSupervisor,
     FederatedWrapperStrategy,
     wrap_train_client_factory,
 )
 
-import src.solution_federated as solution_federated
+from examples_src.fincrime import solution_federated as solution_federated
 
 
 if __name__ == "__main__":
@@ -33,34 +33,8 @@ if __name__ == "__main__":
         solution_federated.test_strategy_factory
     )
 
-    supervisor = FederatedSupervisor(partition_config_path=Path(sys.argv[1]))
-
-    # Run optional train_setup function
-    if hasattr(solution_federated, "train_setup"):
-        supervisor_logger, log_handler_id = create_supervisor_logger(
-            logger=logger, log_path=supervisor.supervisor_log_path
-        )
-        supervisor_logger.info(
-            "train_setup found. Running...",
-            cid="setup",
-            method="train_setup",
-            event="start",
-        )
-        solution_federated.train_setup(
-            server_dir=supervisor.get_server_state_dir(),
-            client_dirs_dict={
-                cid: supervisor.get_client_state_dir(cid)
-                for cid in supervisor.get_client_ids()
-            },
-        )
-        supervisor_logger.info(
-            "train_setup done.",
-            cid="setup",
-            method="train_setup",
-            event="end",
-        )
-        supervisor_logger.complete()
-        supervisor_logger.remove(log_handler_id)
+    # supervisor = FederatedSupervisor(partition_config_path=Path(sys.argv[1]))
+    supervisor = FederatedSupervisor(partition_config_path=Path(str(Path.cwd().parent) + '/data/fincrime/scenario01/train/partitions.json'))
 
     wrapped_client_factory = wrap_train_client_factory(
         solution_federated.train_client_factory, supervisor
